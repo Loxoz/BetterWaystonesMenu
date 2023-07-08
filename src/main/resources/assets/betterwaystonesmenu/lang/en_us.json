@@ -1,0 +1,10 @@
+{
+  "gui.betterwaystonesmenu.waystone_selection.return_to_original": "Return to original menu",
+  "gui.betterwaystonesmenu.waystone_selection.no_results": "No results",
+  "gui.betterwaystonesmenu.waystone_selection.sort_mode_prefix": "Sort by %s",
+  "gui.betterwaystonesmenu.waystone_selection.sort_modes.index": "Index",
+  "gui.betterwaystonesmenu.waystone_selection.sort_modes.name": "Name",
+  "gui.betterwaystonesmenu.waystone_selection.sort_modes.distance": "Distance",
+  "gui.betterwaystonesmenu.waystone_selection.showing": "Showing %s / %s waystones",
+  "gui.betterwaystonesmenu.waystone_selection.rename": "Rename"
+}

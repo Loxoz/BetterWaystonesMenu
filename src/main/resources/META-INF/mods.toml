@@ -1,0 +1,38 @@
+modLoader="javafml"
+loaderVersion="[40,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="betterwaystonesmenu"
+version="${file.jarVersion}"
+displayName="BetterWaystonesMenu"
+logoFile="betterwaystonesmenu-icon.png"
+authors="Loxoz"
+description='''
+Enhances the Waystones' mod selection menu
+'''
+
+[[dependencies.betterwaystonesmenu]]
+   modId="forge"
+   mandatory=true
+   versionRange="[40,)"
+   ordering="NONE"
+   side="BOTH"
+[[dependencies.betterwaystonesmenu]]
+   modId="minecraft"
+   mandatory=true
+   versionRange="[1.18,1.19)"
+   ordering="NONE"
+   side="BOTH"
+[[dependencies.betterwaystonesmenu]]
+    modId="waystones"
+    mandatory=true
+    versionRange="[10.2.1,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.betterwaystonesmenu]]
+    modId="balm"
+    mandatory=true
+    versionRange="[3.1.0,)"
+    ordering="NONE"
+    side="BOTH"
