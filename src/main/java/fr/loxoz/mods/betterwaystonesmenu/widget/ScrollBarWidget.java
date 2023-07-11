@@ -1,15 +1,20 @@
-package fr.loxoz.mods.betterwaystonesmenu.util;
+package fr.loxoz.mods.betterwaystonesmenu.widget;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import fr.loxoz.mods.betterwaystonesmenu.compat.CText;
+import fr.loxoz.mods.betterwaystonesmenu.util.Easing;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.gui.components.Widget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
+import net.minecraft.client.gui.narration.NarratedElementType;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 
 // adapted from minecraft 1.20 ScrollableWidget (fabric yarn mappings)
-public class ScrollBarHandler implements GuiEventListener, Widget {
+public class ScrollBarWidget implements GuiEventListener, Widget, NarratableEntry {
     public boolean visible = true;
     public boolean hovered = false;
     public int width;
@@ -17,10 +22,14 @@ public class ScrollBarHandler implements GuiEventListener, Widget {
     public int x;
     public int y;
     public int contentHeight = 0;
-    public double deltaYPerScroll = 16;
+    public double deltaYPerScroll = 32;
+    public boolean animated = false;
+    public double smoothScrollDuration = 400; // ms
     private boolean focused = false;
-    private double scrollY;
     private boolean scrollbarDragged;
+    private double scrollY;
+    private double targetScrollY;
+    private long scrollStart = 0;
 
     public void setSize(int width, int height) {
         this.width = width;
@@ -77,7 +86,7 @@ public class ScrollBarHandler implements GuiEventListener, Widget {
         if (!this.visible) {
             return false;
         }
-        this.setScrollY(this.scrollY - amount * this.deltaYPerScroll);
+        this.scrollBy(amount);
         return true;
     }
 
@@ -87,7 +96,7 @@ public class ScrollBarHandler implements GuiEventListener, Widget {
         boolean bl2 = keyCode == GLFW.GLFW_KEY_DOWN;
         if (bl || bl2) {
             double d = this.scrollY;
-            this.setScrollY(this.scrollY + (double)(bl ? -1 : 1) * this.deltaYPerScroll);
+            this.scrollBy(bl ? 1d : -1d);
             if (d != this.scrollY) return true;
         }
         return false;
@@ -96,8 +105,28 @@ public class ScrollBarHandler implements GuiEventListener, Widget {
     @Override
     public void render(@NotNull PoseStack matrices, int mouseX, int mouseY, float partialTicks) {
         hovered = isWithinBounds(mouseX, mouseY);
+        update();
         drawScrollBarBg(matrices);
         drawScrollbarThumb(matrices);
+    }
+
+    public void update() {
+        if (!animated || (scrollY == targetScrollY)) return;
+        long currentTime = System.currentTimeMillis();
+        double deltaTime = currentTime - scrollStart;
+        double t = Math.min(deltaTime / smoothScrollDuration, 1.0);
+
+        if (t >= 1.0) {
+            scrollY = targetScrollY;
+            scrollStart = currentTime;
+        }
+        else {
+            scrollY = ease(scrollY, targetScrollY, t);
+        }
+    }
+
+    public double ease(double start, double end, double t) {
+        return start + (end - start) * Easing.easeOutQuad(t);
     }
 
     public void drawScrollBarBg(PoseStack matrices) {
@@ -112,12 +141,31 @@ public class ScrollBarHandler implements GuiEventListener, Widget {
     }
 
     private int getScrollbarThumbHeight() {
-        return Mth.clamp((int)((float)(this.height * this.height) / contentHeight), 32, this.height);
+        return Mth.clamp((int) ((float) (this.height * this.height) / contentHeight), 32, this.height);
+    }
+
+    public void scrollTo(double targetY) {
+        scrollTo(targetY, animated);
+    }
+    public void scrollTo(double targetY, boolean animated) {
+        targetScrollY = Mth.clamp(targetY, 0.0, this.getMaxScrollY());
+        if (animated) {
+            scrollStart = System.currentTimeMillis();
+            return;
+        }
+        this.scrollY = this.targetScrollY;
+    }
+
+    public void scrollBy(double amount) {
+        this.scrollBy(amount, true);
+    }
+    public void scrollBy(double amount, boolean animated) {
+        this.scrollTo(this.targetScrollY - amount * this.deltaYPerScroll, animated);
     }
 
     public double getScrollY() { return this.scrollY; }
     public void setScrollY(double scrollY) {
-        this.scrollY = Mth.clamp(scrollY, 0.0, this.getMaxScrollY());
+        scrollTo(scrollY, false);
     }
 
     protected int getMaxScrollY() {
@@ -133,8 +181,6 @@ public class ScrollBarHandler implements GuiEventListener, Widget {
         boolean hoveredOrFocused = hovered || focused || scrollbarDragged;
         GuiComponent.fill(matrices, this.x, l, k, m, hoveredOrFocused ? 0xffa0a0a0 : 0xff808080);
         GuiComponent.fill(matrices, this.x, l, k - 1, m - 1, hoveredOrFocused ? 0xffe0e0e0 : 0xffC0C0C0);
-        /* GuiComponent.fill(matrices, this.x, l, k, m, hoveredOrFocused ? 0x99ffffff : 0x66ffffff);
-        GuiComponent.fill(matrices, this.x, l, k - 1, m - 1, 0x66ffffff); */
     }
 
     public boolean isElementVisible(int elementTop, int elementBottom) {
@@ -165,5 +211,20 @@ public class ScrollBarHandler implements GuiEventListener, Widget {
     @Override
     public boolean isMouseOver(double mouseX, double mouseY) {
         return hovered || isWithinBounds(mouseX, mouseY);
+    }
+
+    @Override
+    public @NotNull NarrationPriority narrationPriority() {
+        if (this.focused) {
+            return NarratableEntry.NarrationPriority.FOCUSED;
+        } else {
+            return this.hovered ? NarratableEntry.NarrationPriority.HOVERED : NarratableEntry.NarrationPriority.NONE;
+        }
+    }
+
+    @Override
+    public void updateNarration(@NotNull NarrationElementOutput output) {
+        output.add(NarratedElementType.TITLE, CText.translatable("narration.scrollbar.title"));
+        output.add(NarratedElementType.USAGE, CText.translatable("narration.scrollbar.usage"));
     }
 }

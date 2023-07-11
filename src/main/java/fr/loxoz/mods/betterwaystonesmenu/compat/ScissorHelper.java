@@ -1,4 +1,4 @@
-package fr.loxoz.mods.betterwaystonesmenu.util;
+package fr.loxoz.mods.betterwaystonesmenu.compat;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;

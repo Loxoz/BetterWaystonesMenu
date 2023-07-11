@@ -3,7 +3,14 @@ package fr.loxoz.mods.betterwaystonesmenu.screen;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import fr.loxoz.mods.betterwaystonesmenu.BetterWaystonesMenu;
-import fr.loxoz.mods.betterwaystonesmenu.util.*;
+import fr.loxoz.mods.betterwaystonesmenu.compat.CText;
+import fr.loxoz.mods.betterwaystonesmenu.compat.IPositionedTooltipProvider;
+import fr.loxoz.mods.betterwaystonesmenu.compat.ScissorHelper;
+import fr.loxoz.mods.betterwaystonesmenu.compat.TooltipPos;
+import fr.loxoz.mods.betterwaystonesmenu.compat.widget.TexturedButtonTooltipWidget;
+import fr.loxoz.mods.betterwaystonesmenu.util.BWMSortMode;
+import fr.loxoz.mods.betterwaystonesmenu.widget.ScrollBarWidget;
+import fr.loxoz.mods.betterwaystonesmenu.util.WaystoneUtils;
 import fr.loxoz.mods.betterwaystonesmenu.widget.BetterWaystoneButton;
 import fr.loxoz.mods.betterwaystonesmenu.widget.ClearableTextFieldWidget;
 import net.blay09.mods.balm.api.Balm;
@@ -14,33 +21,30 @@ import net.blay09.mods.waystones.client.gui.widget.RemoveWaystoneButton;
 import net.blay09.mods.waystones.client.gui.widget.SortWaystoneButton;
 import net.blay09.mods.waystones.client.gui.widget.WaystoneButton;
 import net.blay09.mods.waystones.core.PlayerWaystoneManager;
+import net.blay09.mods.waystones.core.WaystoneTypes;
 import net.blay09.mods.waystones.menu.WaystoneSelectionMenu;
 import net.blay09.mods.waystones.network.message.RequestEditWaystoneMessage;
 import net.blay09.mods.waystones.network.message.SelectWaystoneMessage;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.ImageButton;
-import net.minecraft.client.gui.components.Widget;
-import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.text.Collator;
 import java.util.*;
@@ -54,7 +58,6 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
     public static final ResourceLocation MENU_TEXTURE = new ResourceLocation(BetterWaystonesMenu.MOD_ID , "textures/gui/menu.png");
     public static BWMSortMode sortMode = BWMSortMode.INDEX;
     private final List<IWaystone> waystones;
-    private final List<ITooltipProvider> tooltipProviders = new ArrayList<>();
     private final List<BetterWaystoneSelectionScreen.PositionedWaystoneButton> scrollableButtons = new ArrayList<>();
     private Screen originalScreen = null;
     protected Rect2i area_heading = new Rect2i(0, 0, 0, 0);
@@ -62,7 +65,7 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
     protected Rect2i area_query = new Rect2i(0, 0, 0, 0);
     protected Rect2i area_scrollBox = new Rect2i(0, 0, 0, 0);
     private Component heading_title;
-    private final ScrollBarHandler scrollBar = new ScrollBarHandler();
+    private final ScrollBarWidget scrollBar = new ScrollBarWidget();
     private EditBox queryField;
     private SortModeButtonWidget sortModeBtn;
     private String query = "";
@@ -74,16 +77,30 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
         //noinspection SuspiciousNameCombination
         this.imageWidth = this.imageHeight = CONTENT_WIDTH;
         this.updateFilters();
+        scrollBar.animated = true;
     }
 
     public void setOriginalScreen(Screen originalScreen) { this.originalScreen = originalScreen; }
     public Screen getOriginalScreen() { return originalScreen; }
 
-    protected <T extends GuiEventListener & Widget & NarratableEntry> @NotNull T addRenderableWidget(@NotNull T widget) {
-        if (widget instanceof ITooltipProvider) {
-            this.tooltipProviders.add((ITooltipProvider) widget);
+    protected @Nullable Vec3 getOriginPos() {
+        if (this.menu.getWaystoneFrom() != null) {
+            return Vec3.atBottomCenterOf(this.menu.getWaystoneFrom().getPos());
         }
-        return super.addRenderableWidget(widget);
+        if (this.minecraft != null && this.minecraft.player != null) {
+            return this.minecraft.player.position();
+        }
+        return null;
+    }
+
+    protected @Nullable ResourceKey<Level> getOriginDim() {
+        if (this.menu.getWaystoneFrom() != null) {
+            return this.menu.getWaystoneFrom().getDimension();
+        }
+        if (this.minecraft != null && this.minecraft.player != null) {
+            return this.minecraft.player.clientLevel.dimension();
+        }
+        return null;
     }
 
     protected void updateFilters() {
@@ -95,19 +112,16 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
             list = this.waystones;
         }
         else {
-            list = this.waystones.stream().filter(waystones -> waystones.getName().contains(query)).toList();
+            var parts = query.split(" +");
+            list = this.waystones.stream().filter(waystones -> {
+                for (var part : parts) {
+                    if (!waystones.getName().contains(part)) return false;
+                }
+                return true;
+            }).toList();
         }
 
-        final Vec3 origin;
-        if (this.menu.getWaystoneFrom() != null) {
-            origin = Vec3.atBottomCenterOf(this.menu.getWaystoneFrom().getPos());
-        }
-        else if (this.minecraft != null && this.minecraft.player != null) {
-            origin = this.minecraft.player.position();
-        }
-        else {
-            origin = new Vec3(0, 0, 0);
-        }
+        final Vec3 origin = Optional.ofNullable(getOriginPos()).orElse(new Vec3(0, 0, 0));
         Comparator<IWaystone> comparator = switch (sortMode) {
             case NAME -> (w1, w2) -> Collator.getInstance().compare(w1.getName(), w2.getName());
             case DISTANCE -> (w1, w2) -> (int) (origin.distanceToSqr(Vec3.atBottomCenterOf(w1.getPos())) - origin.distanceToSqr(Vec3.atBottomCenterOf(w2.getPos())));
@@ -133,57 +147,70 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
 
     @Override
     protected void init() {
-        // content x and width excluding heading
-        int cx = width/2 - CONTENT_WIDTH/2;
+        // content width and x excluding heading's size
         int cw = CONTENT_WIDTH;
-        this.heading_title = this.menu.getWaystoneFrom() == null ? null : getTrimmedWaystoneName(this.menu.getWaystoneFrom(), font, getMaxNameWidth());
-        // sizes that will be used as the area_root
-        this.imageWidth = Math.max(CONTENT_WIDTH, this.heading_title != null ? (font.width(this.heading_title) + 36) : 0);
+        int cx = width/2 - cw/2;
+        this.heading_title = this.menu.getWaystoneFrom() == null ? null : WaystoneUtils.getTrimmedWaystoneName(this.menu.getWaystoneFrom(), font, getMaxNameWidth());
+        // title width (36 = space for icon and edit button)
+        int title_w = this.heading_title != null ? (font.width(this.heading_title) + 36) : 0;
+        // side button size
+        int sbw = 20 + UI_GAP;
+        // side buttons positions
+        int cbw = cw + sbw * 2; // content + side buttons width
+        int cbx = (width - cbw) / 2; // content + side buttons x
+        // sizes that will be used as the layout
+        this.imageWidth = Math.max(cbw, title_w);
         this.imageHeight = (int) (this.height * 0.6f) + (UI_GAP * 2);
         super.init();
         // compute layout
-        int rx = leftPos;
-        int ry = topPos;
-        int rw = imageWidth;
-        int rh = imageHeight;
-        int rb = ry + rh;
+        int hw = Math.max(title_w, cw); // heading width
+        int hx = (width - hw) / 2; // heading x
+        int ry = topPos; // root y
+        int rh = imageHeight; // root height
+        int rb = ry + rh; // root bottom
 
-        this.area_heading = new Rect2i(rx, ry, rw, 18);
+        this.area_heading = new Rect2i(hx, ry, hw, 18);
         this.area_title = new Rect2i(cx, this.area_heading.getY() + this.area_heading.getHeight() + UI_GAP, cw, font.lineHeight);
         this.area_query = new Rect2i(cx, this.area_title.getY() + this.area_title.getHeight() + UI_GAP, cw, 20);
         // store bottom Y pos + UI_GAP of area_query
         int aq_bpos = this.area_query.getY() + this.area_query.getHeight() + UI_GAP;
         this.area_scrollBox = new Rect2i(cx, aq_bpos, cw, rb - aq_bpos);
 
-        this.tooltipProviders.clear();
-
-        this.addRenderableWidget(new ImageButton(16, 16, 20, 20, 0, 0, 20, MENU_TEXTURE, 256, 256, (btn) -> {
-            if (originalScreen == null) return;
-            BetterWaystonesMenu.inst().openOriginalScreen(originalScreen);
-        }, ButtonTooltip.USING_MESSAGE, new TranslatableComponent("gui.betterwaystonesmenu.waystone_selection.return_to_original")));
-
+        //// heading
+        // rename button
         if (this.menu.getWaystoneFrom() != null) {
-            this.addRenderableWidget(new ImageButton(area_heading.getX() + area_heading.getWidth() - 18, area_heading.getY(), 18, 18, 0, 40, 18, MENU_TEXTURE, 256, 256, (btn) ->
+            this.addRenderableWidget(new TexturedButtonTooltipWidget(area_heading.getX() + area_heading.getWidth() - 18, area_heading.getY(), 18, 18, 0, 40, 18, MENU_TEXTURE, 256, 256, (btn) ->
                     Balm.getNetworking().sendToServer(new RequestEditWaystoneMessage(this.menu.getWaystoneFrom().getWaystoneUid()))
-            , ButtonTooltip.USING_MESSAGE, new TranslatableComponent("gui.betterwaystonesmenu.waystone_selection.rename")));
+            , CText.translatable("gui.betterwaystonesmenu.waystone_selection.rename")));
         }
 
-        this.queryField = new ClearableTextFieldWidget(font, area_query.getX(), area_query.getY(), area_query.getWidth() - 20 - UI_GAP, area_query.getHeight(), new TextComponent(""));
+        //// side buttons
+        // return to original button
+        this.addRenderableWidget(new TexturedButtonTooltipWidget(cbx, area_query.getY(), 20, 20, 0, 0, 20, MENU_TEXTURE, 256, 256, (btn) -> {
+            if (originalScreen == null) return;
+            BetterWaystonesMenu.inst().openOriginalScreen(originalScreen);
+        }, CText.translatable("gui.betterwaystonesmenu.waystone_selection.return_to_original")));
+
+        //// query area
+        // query field
+        this.queryField = new ClearableTextFieldWidget(font, area_query.getX(), area_query.getY(), area_query.getWidth() - 20 - UI_GAP, area_query.getHeight(), CText.translatable("gui.betterwaystonesmenu.waystone_selection.query_waystones"));
         this.queryField.setMaxLength(128);
         this.queryField.setValue(query);
         this.addRenderableWidget(this.queryField);
 
-        this.sortModeBtn = new SortModeButtonWidget(area_query.getX() + area_query.getWidth() - 20, area_query.getY(), 20, 20, MENU_TEXTURE, 0, 92, 20, sortMode, ButtonTooltip.USING_MESSAGE);
+        // sort button
+        this.sortModeBtn = new SortModeButtonWidget(area_query.getX() + area_query.getWidth() - 20, area_query.getY(), 20, 20, MENU_TEXTURE, 0, 92, 20, sortMode);
         this.addRenderableWidget(this.sortModeBtn);
 
+        //// scrollbar
         scrollBar.setPosSize(area_scrollBox.getX() + area_scrollBox.getWidth() - 8, area_scrollBox.getY(), 8, area_scrollBox.getHeight());
-        ((ScreenAccessor) this).balm_getChildren().add(scrollBar);
+        addWidget(scrollBar);
 
+        //// waystone buttons
         this.updateList();
     }
 
     private void updateList() {
-        this.tooltipProviders.clear();
         this.scrollableButtons.clear();
 
         Predicate<Object> removePredicate = (button) -> button instanceof WaystoneButton || button instanceof SortWaystoneButton || button instanceof RemoveWaystoneButton;
@@ -212,7 +239,7 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
         int xpLevelCost = Math.round((float) PlayerWaystoneManager.predictExperienceLevelCost(Objects.requireNonNull(player), waystone, this.menu.getWarpMode(), waystoneFrom));
         BetterWaystoneButton btnWaystone = new BetterWaystoneButton(this.width / 2 - 100, y, waystone, xpLevelCost, (button) ->
                 this.onWaystoneSelected(waystone)
-        );
+        , getOriginPos(), getOriginDim());
         btnWaystone.setWidth(CONTENT_WIDTH - scrollBar.width - BTN_GAP);
         if (waystoneFrom != null && waystone.getWaystoneUid().equals(waystoneFrom.getWaystoneUid())) {
             btnWaystone.active = false;
@@ -224,8 +251,6 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
     protected void onWaystoneSelected(IWaystone waystone) {
         Balm.getNetworking().sendToServer(new SelectWaystoneMessage(waystone.getWaystoneUid()));
     }
-
-    // sortWaystone
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
@@ -258,7 +283,7 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
             for (var pos : scrollableButtons) {
                 if (!pos.getButton().isFocused()) continue;
                 if (scrollBar.isElementFullyVisible(pos.viewY, pos.viewY + pos.getButton().getHeight())) continue;
-                scrollBar.setScrollY(pos.viewY - scrollBar.y - (scrollBar.height - pos.getButton().getHeight()) / 2f);
+                scrollBar.scrollTo(pos.viewY - scrollBar.y - (scrollBar.height - pos.getButton().getHeight()) / 2f);
             }
         }
         return bl;
@@ -300,7 +325,9 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
                 // icon
                 RenderSystem.setShaderTexture(0, MENU_TEXTURE);
                 RenderSystem.enableBlend();
-                blit(matrices, area_heading.getX() + 1, area_heading.getY() + 1, 0, 76, 16, 16);
+                int u = 0;
+                if (fromWaystone.getWaystoneType().equals(WaystoneTypes.WAYSTONE)) u = 16;
+                blit(matrices, area_heading.getX() + 1, area_heading.getY() + 1, u, 76, 16, 16);
                 RenderSystem.disableBlend();
             }
             else {
@@ -323,12 +350,12 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
             }
         }
         // results count
-        drawCenteredString(matrices, font, new TranslatableComponent("gui.betterwaystonesmenu.waystone_selection.showing", visibleWaystones.size(), waystones.size()), width/2, area_scrollBox.getY() + area_scrollBox.getHeight() + UI_GAP, 0x33ffffff);
+        drawCenteredString(matrices, font, CText.translatable("gui.betterwaystonesmenu.waystone_selection.showing", visibleWaystones.size(), waystones.size()), width/2, area_scrollBox.getY() + area_scrollBox.getHeight() + UI_GAP, 0x33ffffff);
         // if no waystones or results message
         if (this.visibleWaystones.size() == 0) {
             var message = query.isBlank() ?
-                    new TranslatableComponent("gui.waystones.waystone_selection.no_waystones_activated").withStyle(style -> style.withColor(ChatFormatting.RED)) :
-                    new TranslatableComponent("gui.betterwaystonesmenu.waystone_selection.no_results").withStyle(style -> style.withColor(ChatFormatting.GRAY));
+                    CText.translatable("gui.waystones.waystone_selection.no_waystones_activated").withStyle(style -> style.withColor(ChatFormatting.RED)) :
+                    CText.translatable("gui.betterwaystonesmenu.waystone_selection.no_results").withStyle(style -> style.withColor(ChatFormatting.GRAY));
             drawCenteredString(matrices, font, message, area_scrollBox.getX() + area_scrollBox.getWidth()/2, (area_scrollBox.getY() + area_scrollBox.getHeight()/2) - (font.lineHeight/2), 0xffffff);
         }
         // scrollable buttons
@@ -351,12 +378,19 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
         super.render(matrices, mouseX, mouseY, partialTicks);
         // scrollbar
         scrollBar.render(matrices, mouseX, mouseY, partialTicks);
-        // tooltips
+        // container slot's tooltip
         this.renderTooltip(matrices, mouseX, mouseY);
-        for (var tooltipProvider : tooltipProviders) {
-            if (tooltipProvider.shouldShowTooltip()) {
-                this.renderTooltip(matrices, tooltipProvider.getTooltip(), Optional.empty(), mouseX, mouseY);
+        // tooltips
+        for (var child : children()) {
+            if (!(child instanceof ITooltipProvider provider) || !provider.shouldShowTooltip()) continue;
+            TooltipPos pos;
+            if (provider instanceof IPositionedTooltipProvider positioned) {
+                pos = positioned.getTooltipPos(mouseX, mouseY);
             }
+            else {
+                pos = new TooltipPos(mouseX, mouseY);
+            }
+            this.renderTooltip(matrices, provider.getTooltip(), Optional.empty(), pos.x(), pos.y());
         }
     }
 
@@ -370,11 +404,6 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
         matrices.translate(-leftPos, -topPos, 0);
         drawCenteredString(matrices, font, this.getTitle().copy().withStyle(style -> style.withColor(ChatFormatting.GRAY)), area_title.getX() + area_title.getWidth()/2, area_title.getY(), 0xffffff);
         matrices.popPose();
-    }
-
-    public static Component getTrimmedWaystoneName(IWaystone waystone, Font font, int maxWidth) {
-        if (!waystone.hasName()) return new TranslatableComponent("gui.waystones.waystone_selection.unnamed_waystone");
-        return Utils.trimTextWidth(waystone.getName(), font, maxWidth);
     }
 
     protected boolean allowSorting() { return true; }
@@ -392,7 +421,7 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
         public BetterWaystoneButton getButton() { return button; }
     }
 
-    public static class SortModeButtonWidget extends Button {
+    public static class SortModeButtonWidget extends Button implements IPositionedTooltipProvider {
         private final ResourceLocation identifier;
         private final int u;
         private final int v;
@@ -400,8 +429,8 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
         BWMSortMode mode;
         List<BWMSortMode> values;
 
-        public SortModeButtonWidget(int x, int y, int width, int height, ResourceLocation identifier, int u, int v, int vHover, BWMSortMode mode, OnTooltip onTooltip) {
-            super(x, y, width, height, new TextComponent(""), $ -> {}, onTooltip);
+        public SortModeButtonWidget(int x, int y, int width, int height, ResourceLocation identifier, int u, int v, int vHover, BWMSortMode mode) {
+            super(x, y, width, height, CText.empty(), $ -> {}, NO_TOOLTIP);
             this.identifier = identifier;
             this.u = u;
             this.v = v;
@@ -410,8 +439,8 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
             values = Arrays.asList(BWMSortMode.values());
         }
 
-        public TranslatableComponent getSortModeName() {
-            return new TranslatableComponent("gui.betterwaystonesmenu.waystone_selection.sort_modes." + mode.getId());
+        public Component getSortModeName() {
+            return CText.translatable("gui.betterwaystonesmenu.waystone_selection.sort_modes." + mode.getId());
         }
 
         public int getIndex() { return values.indexOf(mode); }
@@ -427,7 +456,7 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
 
         @Override
         public @NotNull Component getMessage() {
-            return new TranslatableComponent("gui.betterwaystonesmenu.waystone_selection.sort_mode_prefix", getSortModeName());
+            return CText.translatable("gui.betterwaystonesmenu.waystone_selection.sort_mode_prefix", getSortModeName());
         }
 
         @Override
@@ -438,6 +467,16 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractContaine
             if (this.isHovered) {
                 this.renderToolTip(matrices, mouseX, mouseY);
             }
+        }
+
+        @Override
+        public boolean shouldShowTooltip() {
+            return isHoveredOrFocused();
+        }
+
+        @Override
+        public List<Component> getTooltip() {
+            return List.of(getMessage());
         }
     }
 }

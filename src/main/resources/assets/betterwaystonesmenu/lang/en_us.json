@@ -6,5 +6,11 @@
   "gui.betterwaystonesmenu.waystone_selection.sort_modes.name": "Name",
   "gui.betterwaystonesmenu.waystone_selection.sort_modes.distance": "Distance",
   "gui.betterwaystonesmenu.waystone_selection.showing": "Showing %s / %s waystones",
-  "gui.betterwaystonesmenu.waystone_selection.rename": "Rename"
+  "gui.betterwaystonesmenu.waystone_selection.rename": "Rename",
+  "gui.betterwaystonesmenu.waystone_selection.query_waystones": "Search waystones",
+  "gui.betterwaystonesmenu.waystone_selection.infos.pos_at": "at %s",
+  "gui.betterwaystonesmenu.waystone_selection.infos.pos_dist": "%s blocks away",
+  "gui.betterwaystonesmenu.waystone_selection.infos.dim_in": "in %s",
+  "narration.scrollbar.title": "Scroll bar",
+  "narration.scrollbar.usage": "Scroll with mouse wheel or press up and down to scroll content"
 }

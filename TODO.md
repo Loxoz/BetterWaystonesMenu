@@ -1,4 +1,3 @@
-- enhance focused button auto scroll (put the element at the middle)
-- make scrollbar smooth?
-- add move/sort waystone button ability
-- most visited waystones sort? (session based)
+- remove waystone button
+- move/sort waystone button ability
+- convert ScrollBarWidget to an actual scrollable container (if possible)

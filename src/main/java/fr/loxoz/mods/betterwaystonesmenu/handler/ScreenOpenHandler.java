@@ -3,7 +3,6 @@ package fr.loxoz.mods.betterwaystonesmenu.handler;
 import fr.loxoz.mods.betterwaystonesmenu.BWMScreenUpgrader;
 import net.blay09.mods.waystones.client.gui.screen.SharestoneSelectionScreen;
 import net.blay09.mods.waystones.client.gui.screen.WaystoneSelectionScreen;
-import net.blay09.mods.waystones.client.gui.screen.WaystoneSelectionScreenBase;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.entity.player.Inventory;
