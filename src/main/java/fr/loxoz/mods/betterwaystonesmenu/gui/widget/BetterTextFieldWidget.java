@@ -8,7 +8,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 
-public class BetterTextFieldWidget extends EditBox implements WidgetCompat {
+public class BetterTextFieldWidget extends EditBox {
     public BetterTextFieldWidget(Font textRenderer, int x, int y, int width, int height, Component message) {
         super(textRenderer, x, y, width, height, message);
     }
@@ -36,13 +36,15 @@ public class BetterTextFieldWidget extends EditBox implements WidgetCompat {
         Minecraft.getInstance().font.drawShadow(matrices, getMessage(), x + 4, y + (height - 8f) / 2f, 0xff262626);
     }
 
-    @Override
-    public int getX() { return x; }
-    @Override
-    public void setX(int x) { this.x = x; }
+    // because of Forge Gradle we can't use the WidgetCompat class as setX is defined in parent class and gets remapped
+    public int _getX() { return x; }
+    public void _setX(int x) { this.x = x; }
 
-    @Override
-    public int getY() { return y; }
-    @Override
-    public void setY(int y) { this.y = y; }
+    public int _getY() { return y; }
+    public void _setY(int y) { this.y = y; }
+
+    public void setPosition(int x, int y) {
+        _setX(x);
+        _setY(y);
+    }
 }

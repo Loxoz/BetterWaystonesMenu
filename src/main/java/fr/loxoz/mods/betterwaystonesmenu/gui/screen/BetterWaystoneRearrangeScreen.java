@@ -70,7 +70,7 @@ public class BetterWaystoneRearrangeScreen extends AbstractBetterWaystoneScreen 
             queryField.setMaxLength(128);
         }
         queryField.setPosition(leftPos + backBtn.getWidth() + UI_GAP, topPos);
-        queryField.setWidth(leftPos + imageWidth - queryField.getX());
+        queryField.setWidth(leftPos + imageWidth - queryField._getX());
         addRenderableWidget(queryField);
 
         if (scrollable == null) {
@@ -78,7 +78,7 @@ public class BetterWaystoneRearrangeScreen extends AbstractBetterWaystoneScreen 
         }
         int scrollableY = topPos + queryField.getHeight() + UI_GAP;
         scrollable.setPosition(leftPos, scrollableY);
-        scrollable.setHeight(topPos + imageHeight - queryField.getY());
+        scrollable.setHeight(topPos + imageHeight - queryField._getY());
         addRenderableWidget(scrollable);
 
         if (draggedButton == null) {
