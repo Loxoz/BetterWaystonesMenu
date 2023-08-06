@@ -12,4 +12,4 @@ A [**Waystones**](https://modrinth.com/mod/waystones) addon that enhances the wa
 - ability to drag and drop waystones to swap them (swap because it's a limitation with the waystones mod)
 - enhanced accessibility
 
-![Menu preview](./assets_src/screenshot.jpg)
+![Menu preview](./assets_src/screenshot_1.jpg)
