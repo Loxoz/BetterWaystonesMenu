@@ -1,0 +1,18 @@
+{
+  "gui.betterwaystonesmenu.waystone_selection.return_to_original": "Retour au menu original",
+  "gui.betterwaystonesmenu.waystone_selection.rearrange": "Réarranger les waystones",
+  "gui.betterwaystonesmenu.waystone_selection.back_to_waystones": "Retour aux waystones",
+  "gui.betterwaystonesmenu.waystone_selection.no_results": "Aucun résultat",
+  "gui.betterwaystonesmenu.waystone_selection.sort_mode_prefix": "Trier par %s",
+  "gui.betterwaystonesmenu.waystone_selection.sort_modes.index": "Index",
+  "gui.betterwaystonesmenu.waystone_selection.sort_modes.name": "Nom",
+  "gui.betterwaystonesmenu.waystone_selection.sort_modes.distance": "Distance",
+  "gui.betterwaystonesmenu.waystone_selection.showing": "Affichage de %s / %s waystones",
+  "gui.betterwaystonesmenu.waystone_selection.rename": "Renommer",
+  "gui.betterwaystonesmenu.waystone_selection.query_waystones": "Rechercher des waystones",
+  "gui.betterwaystonesmenu.waystone_selection.infos.pos_at": "en %s",
+  "gui.betterwaystonesmenu.waystone_selection.infos.pos_dist": "à %s blocks",
+  "gui.betterwaystonesmenu.waystone_selection.infos.dim_in": "dans %s",
+  "gui.betterwaystonesmenu.waystone_selection.infos.is_global": "(globale)",
+  "gui.betterwaystonesmenu.waystone_selection.drag_info": "Glissez déposez les waystones que vous souhaitez intervertir\nou sélectionnez une waystone et utilisez les flèches haut/bas"
+}

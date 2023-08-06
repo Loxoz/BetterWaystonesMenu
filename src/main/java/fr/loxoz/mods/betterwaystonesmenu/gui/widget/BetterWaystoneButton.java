@@ -1,7 +1,7 @@
-package fr.loxoz.mods.betterwaystonesmenu.widget;
+package fr.loxoz.mods.betterwaystonesmenu.gui.widget;
 
 import fr.loxoz.mods.betterwaystonesmenu.compat.CText;
-import fr.loxoz.mods.betterwaystonesmenu.compat.IPositionedTooltipProvider;
+import fr.loxoz.mods.betterwaystonesmenu.compat.tooltip.IPositionedTooltipProvider;
 import fr.loxoz.mods.betterwaystonesmenu.util.Formatting;
 import fr.loxoz.mods.betterwaystonesmenu.util.WaystoneUtils;
 import net.blay09.mods.waystones.api.IWaystone;
@@ -25,7 +25,6 @@ import java.util.function.UnaryOperator;
 
 public class BetterWaystoneButton extends WaystoneButton implements IPositionedTooltipProvider {
     private final IWaystone waystone;
-    public boolean viewportVisible = true;
     private final Component fullMessage;
     private final List<Component> tooltip;
     private final @Nullable Vec3 viewingOrigin;
@@ -36,14 +35,11 @@ public class BetterWaystoneButton extends WaystoneButton implements IPositionedT
         this.waystone = waystone;
         this.viewingOrigin = viewingOrigin;
         this.viewingDim = viewingDim;
-        fullMessage = getMessage();
-        setMessage(WaystoneUtils.getTrimmedWaystoneName(waystone, Minecraft.getInstance().font, (int) (width * 0.8f)));
+        fullMessage = getMessage().plainCopy();
+        var msg = WaystoneUtils.getTrimmedWaystoneName(waystone, Minecraft.getInstance().font, (int) (width * 0.8f));
+        if (waystone.isGlobal()) msg.withStyle(ChatFormatting.AQUA);
+        setMessage(msg);
         tooltip = computeTooltip();
-    }
-
-    @Override
-    protected boolean clicked(double p_93681_, double p_93682_) {
-        return viewportVisible && super.clicked(p_93681_, p_93682_);
     }
 
     @Override
@@ -52,13 +48,8 @@ public class BetterWaystoneButton extends WaystoneButton implements IPositionedT
     }
 
     @Override
-    public boolean isHoveredOrFocused() {
-        return viewportVisible && super.isHoveredOrFocused();
-    }
-
-    @Override
     public boolean shouldShowTooltip() {
-        return isHoveredOrFocused() && Screen.hasControlDown();
+        return visible && isHoveredOrFocused() && Screen.hasControlDown();
     }
 
     @Override
@@ -88,6 +79,9 @@ public class BetterWaystoneButton extends WaystoneButton implements IPositionedT
             tooltip.add(CText.translatable("gui.betterwaystonesmenu.waystone_selection.infos.dim_in",
                     waystone.getDimension().location().toString()
             ).withStyle(gray));
+        }
+        if (waystone.isGlobal()) {
+            tooltip.add(CText.translatable("gui.betterwaystonesmenu.waystone_selection.infos.is_global").withStyle(ChatFormatting.DARK_GRAY));
         }
 
         return Collections.unmodifiableList(tooltip);

@@ -144,8 +144,8 @@ repositories {
 dependencies {
     minecraft "net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}"
 
-    implementation fg.deobf("maven.modrinth:waystones:10.2.1+forge-1.18.2")
-    implementation fg.deobf("maven.modrinth:balm:3.2.6+forge-1.18.2")
+    implementation fg.deobf("maven.modrinth:balm:${project.balm_version}")
+    implementation fg.deobf("maven.modrinth:waystones:${project.waystones_version}")
 
     // Locally sourced extra mods for runtime (i.e. testing)
     for (extraModJar in fileTree(dir: "extra-mods", include: '*.jar')) {
@@ -155,6 +155,12 @@ dependencies {
         def artifactId = basename.substring(0, versionSep)
         def version = basename.substring(versionSep + 1)
         runtimeOnly fg.deobf("extra-mods:$artifactId:$version")
+    }
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.base.archivesName.get()}"}
     }
 }
 

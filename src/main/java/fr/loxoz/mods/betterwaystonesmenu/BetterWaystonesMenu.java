@@ -26,7 +26,7 @@ public class BetterWaystonesMenu {
         ModLoadingContext.get().registerExtensionPoint(IExtensionPoint.DisplayTest.class, () -> new IExtensionPoint.DisplayTest(() -> NetworkConstants.IGNORESERVERONLY, (remote, isServer) -> true));
 
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            this.screenOpenHandler = new ScreenOpenHandler();
+            screenOpenHandler = new ScreenOpenHandler();
             MinecraftForge.EVENT_BUS.register(screenOpenHandler);
         }
     }

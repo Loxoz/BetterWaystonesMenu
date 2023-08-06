@@ -1,6 +1,6 @@
 package fr.loxoz.mods.betterwaystonesmenu.compat.widget;
 
-import fr.loxoz.mods.betterwaystonesmenu.compat.IPositionedTooltipProvider;
+import fr.loxoz.mods.betterwaystonesmenu.compat.tooltip.IPositionedTooltipProvider;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.network.chat.Component;

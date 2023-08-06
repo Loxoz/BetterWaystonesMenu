@@ -1,0 +1,18 @@
+{
+  "gui.betterwaystonesmenu.waystone_selection.return_to_original": "Volver al menú original",
+  "gui.betterwaystonesmenu.waystone_selection.rearrange": "Reorganizar las waystones",
+  "gui.betterwaystonesmenu.waystone_selection.back_to_waystones": "Volver a waystones",
+  "gui.betterwaystonesmenu.waystone_selection.no_results": "Sin resultados",
+  "gui.betterwaystonesmenu.waystone_selection.sort_mode_prefix": "Ordenar por %s",
+  "gui.betterwaystonesmenu.waystone_selection.sort_modes.index": "Índice",
+  "gui.betterwaystonesmenu.waystone_selection.sort_modes.name": "Nombre",
+  "gui.betterwaystonesmenu.waystone_selection.sort_modes.distance": "Distancia",
+  "gui.betterwaystonesmenu.waystone_selection.showing": "Mostrando %s / %s waystones",
+  "gui.betterwaystonesmenu.waystone_selection.rename": "Cambiar nombre",
+  "gui.betterwaystonesmenu.waystone_selection.query_waystones": "Buscar waystones",
+  "gui.betterwaystonesmenu.waystone_selection.infos.pos_at": "en %s",
+  "gui.betterwaystonesmenu.waystone_selection.infos.pos_dist": "A %s manzanas de distancia",
+  "gui.betterwaystonesmenu.waystone_selection.infos.dim_in": "en %s",
+  "gui.betterwaystonesmenu.waystone_selection.infos.is_global": "(global)",
+  "gui.betterwaystonesmenu.waystone_selection.drag_info": "Arrastra y suelta las waystones que quieras intercambiar\no selecciona una waystone y usa las flechas arriba/abajo"
+}

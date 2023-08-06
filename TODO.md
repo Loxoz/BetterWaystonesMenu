@@ -1,3 +1,0 @@
-- remove waystone button
-- move/sort waystone button ability
-- convert ScrollBarWidget to an actual scrollable container (if possible)

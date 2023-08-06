@@ -1,4 +1,4 @@
-package fr.loxoz.mods.betterwaystonesmenu.screen;
+package fr.loxoz.mods.betterwaystonesmenu.gui.screen;
 
 import net.blay09.mods.waystones.menu.WaystoneSelectionMenu;
 import net.minecraft.network.chat.Component;
