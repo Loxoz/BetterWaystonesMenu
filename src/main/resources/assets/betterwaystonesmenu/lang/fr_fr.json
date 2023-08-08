@@ -14,5 +14,7 @@
   "gui.betterwaystonesmenu.waystone_selection.infos.pos_dist": "à %s blocks",
   "gui.betterwaystonesmenu.waystone_selection.infos.dim_in": "dans %s",
   "gui.betterwaystonesmenu.waystone_selection.infos.is_global": "(globale)",
-  "gui.betterwaystonesmenu.waystone_selection.drag_info": "Glissez déposez les waystones que vous souhaitez intervertir\nou sélectionnez une waystone et utilisez les flèches haut/bas"
+  "gui.betterwaystonesmenu.waystone_selection.drag_info": "Glissez déposez les waystones que vous souhaitez intervertir\nou sélectionnez une waystone et utilisez les flèches haut/bas",
+  "gui.betterwaystonesmenu.waystone_selection.open_config": "Ouvrir la configuration",
+  "gui.betterwaystonesmenu.waystone_selection.config_requires_configured": "Pour éditer la configuration, vous devez installer le Mod Configured."
 }

@@ -1,6 +1,7 @@
 package fr.loxoz.mods.betterwaystonesmenu.handler;
 
-import fr.loxoz.mods.betterwaystonesmenu.BWMScreenUpgrader;
+import fr.loxoz.mods.betterwaystonesmenu.BetterWaystonesMenu;
+import fr.loxoz.mods.betterwaystonesmenu.gui.BWMScreenUpgrader;
 import net.blay09.mods.waystones.client.gui.screen.SharestoneSelectionScreen;
 import net.blay09.mods.waystones.client.gui.screen.WaystoneSelectionScreen;
 import net.minecraft.client.Minecraft;
@@ -23,6 +24,7 @@ public class ScreenOpenHandler {
     @SubscribeEvent
     public void onScreenOpen(ScreenOpenEvent e) {
         if (e.getScreen() == null) return;
+        if (BetterWaystonesMenu.inst().config().disabled.get()) return;
         ScreenSupplier supplier = supplierMap.get(e.getScreen().getClass());
         if (supplier == null) return;
         if (ignoreNextMenu) {

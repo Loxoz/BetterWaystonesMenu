@@ -14,5 +14,7 @@
   "gui.betterwaystonesmenu.waystone_selection.infos.pos_dist": "A %s manzanas de distancia",
   "gui.betterwaystonesmenu.waystone_selection.infos.dim_in": "en %s",
   "gui.betterwaystonesmenu.waystone_selection.infos.is_global": "(global)",
-  "gui.betterwaystonesmenu.waystone_selection.drag_info": "Arrastra y suelta las waystones que quieras intercambiar\no selecciona una waystone y usa las flechas arriba/abajo"
+  "gui.betterwaystonesmenu.waystone_selection.drag_info": "Arrastra y suelta las waystones que quieras intercambiar\no selecciona una waystone y usa las flechas arriba/abajo",
+  "gui.betterwaystonesmenu.waystone_selection.open_config": "Abrir configuración",
+  "gui.betterwaystonesmenu.waystone_selection.config_requires_configured": "Para editar la config debes instalar el Mod Configured"
 }

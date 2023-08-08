@@ -20,10 +20,11 @@ public abstract class AbstractBetterWaystoneScreen extends AbstractContainerScre
     public static int BTN_GAP = 2;
     public static int UI_GAP = 8;
     public static final ResourceLocation MENU_TEXTURE = new ResourceLocation(BetterWaystonesMenu.MOD_ID , "textures/gui/menu.png");
-    public static float contentHeightPercent = 0.666f;
+    public static float menuHeightScale = 0.66f;
 
     public AbstractBetterWaystoneScreen(WaystoneSelectionMenu container, Inventory playerInventory, Component title) {
         super(container, playerInventory, title);
+        menuHeightScale = BetterWaystonesMenu.inst().config().menuHeightScale.get().floatValue();
     }
 
     protected void renderChildrenTooltip(@NotNull PoseStack matrices, int mouseX, int mouseY) {
@@ -32,9 +33,29 @@ public abstract class AbstractBetterWaystoneScreen extends AbstractContainerScre
         }
     }
 
+    protected BetterWaystonesMenu inst() { return BetterWaystonesMenu.inst(); }
+
+    protected void drawVersionInfo(PoseStack matrices) {
+        var info = inst().getModInfo();
+        if (info != null) {
+            drawString(matrices, font, String.format("%s v%s", info.getDisplayName(), info.getVersion()), 32, height - font.lineHeight - UI_GAP, 0x33ffffff);
+        }
+    }
+
     protected void renderPositionedTooltip(PositionedTooltip tooltip, PoseStack matrices, int mouseX, int mouseY) {
         TooltipPos pos = tooltip.getTooltipPos(mouseX, mouseY);
         renderTooltip(matrices, tooltip.getTooltip(), Optional.empty(), pos.x(), pos.y());
+    }
+
+    @Override
+    protected void containerTick() {
+        super.containerTick();
+        float mhs = BetterWaystonesMenu.inst().config().menuHeightScale.get().floatValue();
+        if (mhs != menuHeightScale) {
+            menuHeightScale = mhs;
+            //noinspection ConstantConditions
+            init(minecraft, width, height);
+        }
     }
 
     // patch mouseDragged because `AbstractContainerScreen` does not call it on children

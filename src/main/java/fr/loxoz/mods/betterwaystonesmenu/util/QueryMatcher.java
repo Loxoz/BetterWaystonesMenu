@@ -3,6 +3,7 @@ package fr.loxoz.mods.betterwaystonesmenu.util;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 public class QueryMatcher {
@@ -22,7 +23,7 @@ public class QueryMatcher {
     }
     public String[] getQueryParts() {
         if (queryParts == null) {
-            queryParts = query.trim().split(" +");
+            queryParts = Arrays.stream(query.trim().split(" +")).map(String::toLowerCase).toArray(String[]::new);
         }
         return queryParts;
     }
@@ -37,8 +38,9 @@ public class QueryMatcher {
 
     public boolean match(@Nullable String string) {
         if (string == null) return false;
+        String lowerStr = string.toLowerCase();
         for (var part : getQueryParts()) {
-            if (!string.contains(part)) return false;
+            if (!lowerStr.contains(part)) return false;
         }
         return true;
     }

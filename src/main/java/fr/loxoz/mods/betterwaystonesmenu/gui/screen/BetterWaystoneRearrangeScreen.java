@@ -22,6 +22,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.sounds.SoundManager;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
@@ -59,10 +60,17 @@ public class BetterWaystoneRearrangeScreen extends AbstractBetterWaystoneScreen 
     @Override
     protected void init() {
         imageWidth = CONTENT_WIDTH;
-        imageHeight = (int) (height * contentHeightPercent * 0.9);
+        imageHeight = (int) (height * menuHeightScale * 0.9);
         super.init();
 
-        var backBtn = new TexturedButtonTooltipWidget(leftPos, topPos, 20, 20, 40, 0, 20, MENU_TEXTURE, 256, 256, $ -> onClose(), CText.translatable("gui.betterwaystonesmenu.waystone_selection.back_to_waystones"));
+        var backBtn = new TexturedButtonTooltipWidget(
+                leftPos, topPos, 20, 20,
+                40, 0, 20, MENU_TEXTURE, 256, 256,
+                $ -> onClose(),
+                parent instanceof AbstractBetterWaystoneScreen ?
+                        CText.translatable("gui.betterwaystonesmenu.waystone_selection.back_to_waystones") :
+                        CommonComponents.GUI_BACK
+        );
         addRenderableWidget(backBtn);
 
         if (queryField == null) {
@@ -75,6 +83,9 @@ public class BetterWaystoneRearrangeScreen extends AbstractBetterWaystoneScreen 
 
         if (scrollable == null) {
             scrollable = new ScrollableContainerWidget(0, 0, CONTENT_WIDTH, 0);
+            if (inst().config().reducedMotion.get()) {
+                scrollable.setAnimated(false);
+            }
         }
         int scrollableY = topPos + queryField.getHeight() + UI_GAP;
         scrollable.setPosition(leftPos, scrollableY);
@@ -151,6 +162,11 @@ public class BetterWaystoneRearrangeScreen extends AbstractBetterWaystoneScreen 
         if (!queryMatcher.getQuery().equals(queryField.getValue())) {
             queryMatcher.setQuery(queryField.getValue());
         }
+
+        boolean reducedMotion = inst().config().reducedMotion.get();
+        if (reducedMotion == scrollable.isAnimated()) {
+            scrollable.setAnimated(!reducedMotion);
+        }
     }
 
     @Override
@@ -192,6 +208,8 @@ public class BetterWaystoneRearrangeScreen extends AbstractBetterWaystoneScreen 
 
             draggedButton.setPosition(mouseX - dragContext.getOffsetX(), mouseY - dragContext.getOffsetY());
         }
+        // version info
+        drawVersionInfo(matrices);
         // bottom text info
         {
             var lines = font.split(CText.translatable("gui.betterwaystonesmenu.waystone_selection.drag_info"), (imageWidth * 2));

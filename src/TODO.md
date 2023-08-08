@@ -1,0 +1,4 @@
+- in config:
+  - option to have favorites at first
+- add per world/server favorites and groups
+- add help / features screen

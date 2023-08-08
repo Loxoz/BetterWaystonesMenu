@@ -1,4 +1,4 @@
-package fr.loxoz.mods.betterwaystonesmenu.util;
+package fr.loxoz.mods.betterwaystonesmenu.config;
 
 public enum BWMSortMode {
     INDEX("index"),

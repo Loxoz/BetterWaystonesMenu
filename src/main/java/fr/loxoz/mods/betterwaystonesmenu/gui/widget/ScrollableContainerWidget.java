@@ -35,8 +35,9 @@ public class ScrollableContainerWidget extends AbstractContainerEventHandler imp
     private boolean active = true;
     private boolean visible = true;
     // scroll properties (widget)
-    public boolean scrollbarHovered = false;
     public int scrollbarBg = 0xff111111;
+    public boolean alwaysRenderBg = true;
+    protected boolean scrollbarHovered = false;
     private boolean scrollbarYDragged;
     // scroll properties (generic)
     public double scrollDeltaY = 32;
@@ -213,6 +214,7 @@ public class ScrollableContainerWidget extends AbstractContainerEventHandler imp
     }
 
     public void drawScrollbarBg(@NotNull PoseStack matrices) {
+        if (!alwaysRenderBg && !isOverflowing()) return;
         fill(matrices, getX() + getWidth() - getScrollbarWidth(), getY(), getX() + getWidth(), getY() + getHeight(), scrollbarBg);
     }
 

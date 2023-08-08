@@ -1,4 +1,4 @@
-package fr.loxoz.mods.betterwaystonesmenu;
+package fr.loxoz.mods.betterwaystonesmenu.gui;
 
 import fr.loxoz.mods.betterwaystonesmenu.gui.screen.BetterSharestoneSelectionScreen;
 import fr.loxoz.mods.betterwaystonesmenu.gui.screen.BetterWaystoneSelectionScreen;

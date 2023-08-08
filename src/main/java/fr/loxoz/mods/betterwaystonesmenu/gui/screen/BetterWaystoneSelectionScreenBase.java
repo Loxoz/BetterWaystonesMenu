@@ -2,14 +2,13 @@ package fr.loxoz.mods.betterwaystonesmenu.gui.screen;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
-import fr.loxoz.mods.betterwaystonesmenu.BetterWaystonesMenu;
 import fr.loxoz.mods.betterwaystonesmenu.compat.CText;
 import fr.loxoz.mods.betterwaystonesmenu.compat.widget.TexturedButtonTooltipWidget;
+import fr.loxoz.mods.betterwaystonesmenu.config.BWMSortMode;
 import fr.loxoz.mods.betterwaystonesmenu.gui.widget.BetterTextFieldWidget;
 import fr.loxoz.mods.betterwaystonesmenu.gui.widget.BetterWaystoneButton;
 import fr.loxoz.mods.betterwaystonesmenu.gui.widget.ScrollableContainerWidget;
 import fr.loxoz.mods.betterwaystonesmenu.gui.widget.TexturedEnumButtonWidget;
-import fr.loxoz.mods.betterwaystonesmenu.util.BWMSortMode;
 import fr.loxoz.mods.betterwaystonesmenu.util.QueryMatcher;
 import fr.loxoz.mods.betterwaystonesmenu.util.WaystoneUtils;
 import net.blay09.mods.balm.api.Balm;
@@ -106,8 +105,9 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractBetterWa
     protected int getSpecialCharWeight(String str) {
         char c = str.trim().charAt(0);
         return switch (c) {
-            case '-' -> 2;
-            case '~' -> 1;
+            case '-' -> 10;
+            case '=' -> 5;
+            case '~' -> 2;
             default -> 0;
         };
     }
@@ -116,13 +116,22 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractBetterWa
         return switch (mode) {
             case NAME -> (w1, w2) -> {
                 // allow a list of special characters to be placed at first
-                int specialCharWeight = getSpecialCharWeight(w2.getName()) - getSpecialCharWeight(w1.getName());
-                if (specialCharWeight != 0) return specialCharWeight;
+                if (inst().config().specialCharsFirst.get()) {
+                    int specialCharWeight = getSpecialCharWeight(w2.getName()) - getSpecialCharWeight(w1.getName());
+                    if (specialCharWeight != 0) return specialCharWeight;
+                }
                 return Collator.getInstance().compare(w1.getName(), w2.getName());
             };
             case DISTANCE -> (w1, w2) -> (int) (origin.distanceToSqr(Vec3.atBottomCenterOf(w1.getPos())) - origin.distanceToSqr(Vec3.atBottomCenterOf(w2.getPos())));
             default -> null;
         };
+    }
+
+    public void setSortMode(BWMSortMode mode) {
+        sortMode = mode;
+        inst().config().sortMode.set(sortMode);
+        updateFilters();
+        updateList();
     }
 
     protected boolean isIconHeading() {
@@ -151,7 +160,7 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractBetterWa
         int cbx = (width - cbw) / 2; // content + side buttons x
         // sizes that will be used as the layout
         imageWidth = Math.max(cbw, title_w);
-        imageHeight = (int) (height * contentHeightPercent) + (UI_GAP * 2);
+        imageHeight = (int) (height * menuHeightScale) + (UI_GAP * 2);
         super.init();
         // compute layout
         int hw = Math.max(title_w, cw); // heading width
@@ -165,6 +174,9 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractBetterWa
         area_query = new Rect2i(cx, area_title.getY() + area_title.getHeight() + UI_GAP, cw, 20);
         // store bottom Y pos + UI_GAP of area_query
         int aq_bpos = area_query.getY() + area_query.getHeight() + UI_GAP;
+
+        /// load sort mode
+        sortMode = inst().config().sortMode.get();
 
         //// heading
         // rename button
@@ -186,10 +198,13 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractBetterWa
             sby += 20 + UI_GAP;
         }
 
+        addRenderableWidget(new ConfigButtonWidget(cbx, sby, CText.translatable("gui.betterwaystonesmenu.waystone_selection.open_config"), inst().getConfigScreen(minecraft, this).orElse(null)));
+        sby += 20 + UI_GAP;
+
         // return to original menu button
         addRenderableWidget(new TexturedButtonTooltipWidget(cbx, sby, 20, 20, 0, 0, 20, MENU_TEXTURE, 256, 256, $ -> {
             if (originalScreen == null) return;
-            BetterWaystonesMenu.inst().openOriginalScreen(originalScreen);
+            inst().openOriginalScreen(originalScreen);
         }, CText.translatable("gui.betterwaystonesmenu.waystone_selection.return_to_original")));
 
         //// query area
@@ -206,16 +221,15 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractBetterWa
         TexturedEnumButtonWidget<BWMSortMode> sortModeBtn = new TexturedEnumButtonWidget<>(area_query.getX() + area_query.getWidth() - 20, area_query.getY(), 20, 20, BWMSortMode.values(), sortMode, mode ->
                 CText.translatable("gui.betterwaystonesmenu.waystone_selection.sort_mode_prefix", CText.translatable("gui.betterwaystonesmenu.waystone_selection.sort_modes." + mode.getId()))
                 , MENU_TEXTURE, 0, 92, 256, 256);
-        sortModeBtn.onChange(mode -> {
-            sortMode = mode;
-            updateFilters();
-            updateList();
-        });
+        sortModeBtn.onChange(this::setSortMode);
         addRenderableWidget(sortModeBtn);
 
         //// scrollbar
         if (scrollable == null) {
             scrollable = new ScrollableContainerWidget(0, 0, cw, 0);
+            if (inst().config().reducedMotion.get()) {
+                scrollable.setAnimated(false);
+            }
         }
         scrollable.setPosition(cx, aq_bpos);
         scrollable.setHeight(rb - aq_bpos);
@@ -277,11 +291,17 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractBetterWa
 
     @Override
     protected void containerTick() {
+        super.containerTick();
         queryField.tick();
         if (!queryMatcher.getQuery().equals(queryField.getValue())) {
             queryMatcher.setQuery(queryField.getValue());
             updateFilters();
             updateList();
+        }
+
+        boolean reducedMotion = inst().config().reducedMotion.get();
+        if (reducedMotion == scrollable.isAnimated()) {
+            scrollable.setAnimated(!reducedMotion);
         }
     }
 
@@ -331,8 +351,11 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractBetterWa
                 }
             }
         }
+        // version info
+        drawVersionInfo(matrices);
+
         // results count
-        drawCenteredString(matrices, font, CText.translatable("gui.betterwaystonesmenu.waystone_selection.showing", visibleWaystones.size(), waystones.size()), width/2, scrollable.getY() + scrollable.getHeight() + UI_GAP, 0x4dffffff);
+        drawCenteredString(matrices, font, CText.translatable("gui.betterwaystonesmenu.waystone_selection.showing", visibleWaystones.size(), waystones.size()), width/2, scrollable.getY() + scrollable.getHeight() + UI_GAP, 0xff737373);
 
         // if no waystones or results message
         if (visibleWaystones.size() == 0) {
@@ -361,4 +384,28 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractBetterWa
 
     protected boolean allowSorting() { return true; }
     protected boolean allowDeletion() { return true; }
+
+    protected class ConfigButtonWidget extends TexturedButtonTooltipWidget {
+        public ConfigButtonWidget(int x, int y, Component message, Screen configScreen) {
+            super(x, y, 20, 20, 60, 0, 20, MENU_TEXTURE, 256, 256, $ -> {
+                if (configScreen == null) return;
+                //noinspection ConstantConditions
+                minecraft.setScreen(configScreen);
+            }, message);
+            if (configScreen == null) active = false;
+        }
+
+        @Override
+        public void renderButton(@NotNull PoseStack matrices, int mouseX, int mouseY, float delta) {
+            super.renderButton(matrices, mouseX, mouseY, delta);
+            if (!active) fill(matrices, x, y, x + getWidth(), y + getHeight(), 0xcc141414);
+        }
+
+        @Override
+        public List<Component> getTooltip() {
+            var list = new ArrayList<>(super.getTooltip());
+            if (!active) list.add(CText.translatable("gui.betterwaystonesmenu.waystone_selection.config_requires_configured"));
+            return Collections.unmodifiableList(list);
+        }
+    }
 }
