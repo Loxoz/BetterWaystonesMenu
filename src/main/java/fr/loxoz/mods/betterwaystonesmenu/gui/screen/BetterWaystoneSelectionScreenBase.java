@@ -103,6 +103,7 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractBetterWa
     }
 
     protected int getSpecialCharWeight(String str) {
+        if (str.isBlank()) return -1;
         char c = str.trim().charAt(0);
         return switch (c) {
             case '-' -> 10;
