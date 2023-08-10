@@ -9,7 +9,8 @@ import fr.loxoz.mods.betterwaystonesmenu.gui.widget.BetterTextFieldWidget;
 import fr.loxoz.mods.betterwaystonesmenu.gui.widget.BetterWaystoneButton;
 import fr.loxoz.mods.betterwaystonesmenu.gui.widget.ScrollableContainerWidget;
 import fr.loxoz.mods.betterwaystonesmenu.gui.widget.TexturedEnumButtonWidget;
-import fr.loxoz.mods.betterwaystonesmenu.util.QueryMatcher;
+import fr.loxoz.mods.betterwaystonesmenu.util.query.IQueryMatcher;
+import fr.loxoz.mods.betterwaystonesmenu.util.query.PartsQueryMatcher;
 import fr.loxoz.mods.betterwaystonesmenu.util.WaystoneUtils;
 import net.blay09.mods.balm.api.Balm;
 import net.blay09.mods.waystones.api.IWaystone;
@@ -37,6 +38,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.text.Collator;
 import java.util.*;
+import java.util.function.Predicate;
 
 public abstract class BetterWaystoneSelectionScreenBase extends AbstractBetterWaystoneScreen {
     public static BWMSortMode sortMode = BWMSortMode.INDEX;
@@ -46,7 +48,7 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractBetterWa
     protected Rect2i area_query = new Rect2i(0, 0, 0, 0);
     protected ScrollableContainerWidget scrollable;
     protected BetterTextFieldWidget queryField;
-    protected QueryMatcher queryMatcher = new QueryMatcher("");
+    protected IQueryMatcher queryMatcher = new PartsQueryMatcher();
     private Screen originalScreen = null;
     private Component heading_title;
     private final List<IWaystone> visibleWaystones = new ArrayList<>();
@@ -81,20 +83,32 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractBetterWa
         return null;
     }
 
-    // TODO: weighted search
     protected void updateFilters() {
         visibleWaystones.clear();
         List<IWaystone> list;
 
+        Map<IWaystone, Float> resultScores = inst().config().weightedSearch.get() ? new HashMap<>() : null;
         if (queryMatcher.isBlank()) {
             list = waystones;
         }
         else {
-            list = waystones.stream().filter(waystone -> queryMatcher.match(waystone.getName())).toList();
+            Predicate<IWaystone> predicate = waystone -> queryMatcher.match(waystone.getName());
+            if (resultScores != null) {
+                predicate = waystone -> resultScores.compute(waystone, ($, score) -> score == null ? queryMatcher.matchScore(waystone.getName()) : score) > 0;
+            }
+            list = waystones.stream().filter(w -> !w.getName().isBlank()).filter(predicate).toList();
         }
 
         final Vec3 origin = Optional.ofNullable(getOriginPos()).orElse(new Vec3(0, 0, 0));
-        Comparator<IWaystone> comparator = getSortComparator(sortMode, origin);
+        Comparator<IWaystone> sortComparator = getSortComparator(sortMode, origin);
+        Comparator<IWaystone> comparator = sortComparator;
+        if (resultScores != null) {
+            comparator = (w1, w2) -> {
+                float score = (resultScores.getOrDefault(w2, 0f)) - (resultScores.getOrDefault(w1, 0f));
+                if (score != 0) return score > 0 ? 1 : -1;
+                return sortComparator != null ? sortComparator.compare(w1, w2) : 0;
+            };
+        }
         if (comparator != null) {
             list = list.stream().sorted(comparator).toList();
         }
@@ -103,7 +117,7 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractBetterWa
     }
 
     protected int getSpecialCharWeight(String str) {
-        if (str.isBlank()) return -1;
+        if (str.isBlank()) return 0;
         char c = str.trim().charAt(0);
         return switch (c) {
             case '-' -> 10;
@@ -116,6 +130,9 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractBetterWa
     public @Nullable Comparator<IWaystone> getSortComparator(BWMSortMode mode, Vec3 origin) {
         return switch (mode) {
             case NAME -> (w1, w2) -> {
+                // put unnamed waystones at the end
+                int unnamedDiff = (w2.getName().isBlank() ? -1 : 0) - (w1.getName().isBlank() ? -1 : 0);
+                if (unnamedDiff != 0) return unnamedDiff;
                 // allow a list of special characters to be placed at first
                 if (inst().config().specialCharsFirst.get()) {
                     int specialCharWeight = getSpecialCharWeight(w2.getName()) - getSpecialCharWeight(w1.getName());
@@ -217,6 +234,9 @@ public abstract class BetterWaystoneSelectionScreenBase extends AbstractBetterWa
         queryField.setPosition(area_query.getX(), area_query.getY());
         queryField.setWidth(area_query.getWidth() - 20 - UI_GAP);
         addRenderableWidget(queryField);
+        if (inst().config().focusSearch.get()) {
+            setInitialFocus(queryField);
+        }
 
         // sort button
         TexturedEnumButtonWidget<BWMSortMode> sortModeBtn = new TexturedEnumButtonWidget<>(area_query.getX() + area_query.getWidth() - 20, area_query.getY(), 20, 20, BWMSortMode.values(), sortMode, mode ->

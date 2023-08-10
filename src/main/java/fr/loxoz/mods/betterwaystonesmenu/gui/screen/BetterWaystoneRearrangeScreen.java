@@ -8,7 +8,8 @@ import fr.loxoz.mods.betterwaystonesmenu.compat.widget.WidgetCompat;
 import fr.loxoz.mods.betterwaystonesmenu.gui.widget.BetterRemoveWaystoneButton;
 import fr.loxoz.mods.betterwaystonesmenu.gui.widget.BetterTextFieldWidget;
 import fr.loxoz.mods.betterwaystonesmenu.gui.widget.ScrollableContainerWidget;
-import fr.loxoz.mods.betterwaystonesmenu.util.QueryMatcher;
+import fr.loxoz.mods.betterwaystonesmenu.util.query.IQueryMatcher;
+import fr.loxoz.mods.betterwaystonesmenu.util.query.PartsQueryMatcher;
 import fr.loxoz.mods.betterwaystonesmenu.util.Utils;
 import fr.loxoz.mods.betterwaystonesmenu.util.WaystoneUtils;
 import net.blay09.mods.balm.api.Balm;
@@ -43,7 +44,7 @@ public class BetterWaystoneRearrangeScreen extends AbstractBetterWaystoneScreen 
     protected DragContext dragContext = null;
     protected List<DropZone> dropZones = new ArrayList<>();
     protected BetterTextFieldWidget queryField;
-    protected QueryMatcher queryMatcher = new QueryMatcher("");
+    protected IQueryMatcher queryMatcher = new PartsQueryMatcher();
 
     public BetterWaystoneRearrangeScreen(WaystoneSelectionMenu container, Inventory playerInventory, Screen parent, Allowed allowed) {
         super(container, playerInventory, CText.translatable("gui.betterwaystonesmenu.waystone_selection.rearrange"));
@@ -80,6 +81,9 @@ public class BetterWaystoneRearrangeScreen extends AbstractBetterWaystoneScreen 
         queryField.setPosition(leftPos + backBtn.getWidth() + UI_GAP, topPos);
         queryField.setWidth(leftPos + imageWidth - queryField._getX());
         addRenderableWidget(queryField);
+        if (inst().config().focusSearch.get()) {
+            setInitialFocus(queryField);
+        }
 
         if (scrollable == null) {
             scrollable = new ScrollableContainerWidget(0, 0, CONTENT_WIDTH, 0);
